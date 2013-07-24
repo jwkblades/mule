@@ -1,0 +1,34 @@
+#!/usr/bin/perl
+
+use warnings;
+use strict;
+
+my @args = @ARGV;
+sub install(@);
+sub remove(@){}
+sub repo(@){}
+sub update(@){}
+my %commands = (
+	"install" => \&install,
+	"remove" => \&remove,
+	"repo" => \&repo,
+	"update" => \&update
+);
+sub _main(@){
+	my @argv = @_;
+	my $cmd = shift(@argv);
+	printf("Called _main\n");
+	if($commands{$cmd}){
+		&{$commands{$cmd}}(@argv);
+	}
+	else{
+	}
+}
+_main(@args);
+
+
+sub install(@){
+	my @argv = @_;
+	printf("Called install\n");
+}
+
