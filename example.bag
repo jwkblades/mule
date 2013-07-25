@@ -1,0 +1,18 @@
+{
+	"name": "example",
+	"version": "1.0",
+	"description": "A quick example BAG",
+	"keywords": [
+		"example",
+		"mule"
+	],
+	"author": "James Blades",
+	"dependencies": {
+		"example-core": "1.2"
+	},
+	"devDependencies": {
+	},
+	"installer": "example.installer.sh",
+	"uninstaller": "example.uninstaller.sh",
+	"license": "MIT"
+}
