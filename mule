@@ -5,9 +5,9 @@ use strict;
 
 my @args = @ARGV;
 sub install(@);
-sub remove(@){}
-sub repo(@){}
-sub update(@){}
+sub remove(@);
+sub repo(@);
+sub update(@);
 my %commands = (
 	"install" => \&install,
 	"remove" => \&remove,
@@ -31,4 +31,9 @@ sub install(@){
 	my @argv = @_;
 	printf("Called install\n");
 }
-
+sub remove(@){
+}
+sub repo(@){
+}
+sub update(@){
+}
