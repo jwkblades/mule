@@ -43,6 +43,10 @@ my %commands = (
 sub _main(@){
 	my @argv = @_;
 	my $cmd = shift(@argv);
+	if(!$cmd){
+		printf("Please put in a command\n");# FIXME - Should be a help message
+		return;
+	}
 	if($commands{$cmd}){
 		&{$commands{$cmd}}(@argv);
 	}
@@ -53,7 +57,72 @@ _main(@args);
 
 
 sub install(@){
-	my @argv = @_;
+	my $jsonString = "";
+	my $jsonRef = 0;
+	my $dirty = 0;
+
+	`touch .mule`;
+	open(REPO_LIST, "<.mule");
+	while(<REPO_LIST>){
+		$jsonString .= $_;
+	}
+	close(REPO_LIST);
+	if(!$jsonString){
+		printf("Empty .mule file, please use 'mule repo add' to add repository mirrors\n");
+		return;
+	}
+	else{
+		$jsonRef = decode_json($jsonString);
+	}
+
+	foreach my $bag (@_){
+		my $found = 0;
+		my $repoName;
+		my $repoBag;
+		foreach $repoName (keys(%{$jsonRef->{"repos"}})){
+			my $repoJsonString = "";
+			open(REPO_BAGGAGE, "<$repoName/baggage");
+			while(<REPO_BAGGAGE>){
+				$repoJsonString .= $_;
+			}
+			close(REPO_BAGGAGE);
+			my $repoJsonRef = decode_json($repoJsonString);
+			foreach $repoBag (@{$repoJsonRef}){
+				if($repoBag->{"name"} eq $bag){
+					$found = 1;
+					last;
+				}
+			}
+			if($found){
+				last;
+			}
+
+		}
+		if($found){
+			$dirty = 1;
+			push($jsonRef->{"bags"},  $repoBag);
+
+			if(!(-d $bag)){
+				my $bagURL = $repoBag->{"repo"};
+				`git clone $bagURL`;
+			}
+			else{
+				`cd $bag; git pull origin master`;
+			}
+			my $installer = $repoBag->{"installer"};
+			`cd $bag; ./$installer`;
+		}
+		else{
+			printf("Bag $bag could not be found\n");
+		}
+	}
+
+	if($dirty){
+		my $repoString = encode_json($jsonRef);
+		open(REPO_FILE, ">.mule");
+		printf(REPO_FILE "$repoString");
+		close(REPO_FILE);
+	}
 }
 
 sub remove(@){
