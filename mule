@@ -57,35 +57,41 @@ sub install(@){
 	my @argv = @_;
 	printf("Called install\n");
 }
+
 sub remove(@){
 }
+
+sub update(@){
+}
+
 sub repo(@){
 	my $dirty = 0;
 	my $cmd = shift(@_);
 	my $jsonString = "";
 	my $jsonRef = 0;
-	my @emptyRepoArray = ();
+	my %emptyRepoHash = ();
 	my %commands = (
 		"add" => sub(@){
 				foreach my $toAdd (@_){
-					if(!(indexOfStr($toAdd, @{$jsonRef})+1)){
-						push($jsonRef, $toAdd);
+					my @matches = $toAdd =~ m/\/([^\/]+)$/;
+					my $repoName = $matches[0];
+					if(!$jsonRef->{$repoName}){
+						$jsonRef->{$repoName} = $toAdd;
 						$dirty = 1;
 					}
 				}
 			},
 		"remove" => sub(@){
 				foreach my $toRemove (@_){
-					my $index = indexOfStr($toRemove, @{$jsonRef});
-					if($index + 1){
-						splice($jsonRef, $index, 1);
+					if($jsonRef->{$toRemove}){
+						delete $jsonRef->{$toRemove};
 						$dirty = 1;
 					}
 				}
 			},
 		"list" => sub(@){
-				foreach my $repo (@{$jsonRef}){
-					printf("$repo\n");
+				foreach my $repo (keys(%{$jsonRef})){
+					printf($repo ." ("  . $jsonRef->{$repo} . ")\n");
 				}
 			},
 		"help" => sub(@){
@@ -104,7 +110,7 @@ sub repo(@){
 	}
 	close(REPO_LIST);
 	if(!$jsonString){
-		$jsonRef = \@emptyRepoArray;
+		$jsonRef = \%emptyRepoHash;
 	}
 	else{
 		$jsonRef = decode_json($jsonString);
@@ -125,12 +131,6 @@ sub repo(@){
 		printf(REPO_LIST "$jsonString");
 		close(REPO_LIST);
 	}
-
-
-
-
-}
-sub update(@){
 }
 
 sub indexOfStr($ @){

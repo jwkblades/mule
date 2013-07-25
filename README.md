@@ -51,7 +51,7 @@ File Formats
 
 .mule
 -----
-A JSON array of REPO URLs.
+A JSON object of name to REPO URL key-value pairings.
 
 example.bag
 -----------
