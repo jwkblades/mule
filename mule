@@ -1,9 +1,13 @@
 #!/usr/bin/perl
 
+
+
+use JSON;
 use warnings;
 use strict;
 
 my @args = @ARGV;
+sub findIn($ @);
 sub install(@);
 sub remove(@);
 sub repo(@);
@@ -34,6 +38,91 @@ sub install(@){
 sub remove(@){
 }
 sub repo(@){
+	sub add($);
+	sub remove($);
+	sub list();
+	sub help();
+	my %commands = (
+		"add" => \&add,
+		"remove" => \&remove,
+		"list" => \&list,
+		"help" => \&help
+	);
+	my $dirty = 0;
+	my $cmd = shift(@_);
+	my $jsonString = "";
+	my $jsonRef = 0;
+	my @emptyRepoArray = ();
+	
+	open(REPO_LIST, "<.mule");
+	while(<REPO_LIST>){
+		$jsonString .= $_;
+	}
+	close(REPO_LIST);
+	if(!$jsonString){
+		$jsonRef = \@emptyRepoArray;
+	}
+	else{
+		$jsonRef = decode_json($jsonString);
+	}
+
+	if(!$cmd){
+		help();
+	}
+	elsif($commands{$cmd}){
+		&{$commands{$cmd}}(@argv);
+	}
+	else{
+	}
+
+	if($dirty){
+		open(REPO_LIST, "<.mule");
+		my $jsonString = json_encode($jsonRef);
+		printf(REPO_LIST "$jsonString");
+		close(REPO_LIST);
+	}
+
+	sub help(){
+		printf(
+"mule repo usage:
+  add URL - Add the specified package repository (URL) to the list of repositories
+	remove URL - Remove a package repository
+	list - List all package repositories currently available\n");  
+	}
+
+	sub add($){
+		my $toAdd = shift(@_);
+		if(!(indexOfStr($toAdd, $jsonRef->))){
+			$jsonRef->[] = $toAdd;
+			$dirty = 1;
+		}
+	}
+
+	sub remove($){
+		my $toRemove = shift(@_);
+		my $index = indexOfStr($toRemove, $jsonRef->);
+		if($index + 1){
+			splice($jsonRef->, $index, 1);
+			$dirty = 1;
+		}
+	}
+
+	sub list(){
+		foreach my $repo ($jsonRef->){
+			printf("$repo\n");
+		}
+	}
 }
 sub update(@){
+}
+
+sub indexOfStr($ @){
+	my $needle = shift(@_);
+	my @haystack = @_;
+	for(my $i = 0; $i < $#haystack; $i++){
+		if($needle eq $haystack[$i]){
+			return $i;
+		}
+	}
+	return -1;
 }
