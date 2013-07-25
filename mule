@@ -56,6 +56,24 @@ sub _main(@){
 _main(@args);
 
 
+sub install_bag($ $ $){
+	my $bag = shift(@_);
+	my $repoBag = shift(@_);
+	my $jsonRef = shift(@_);
+
+	push($jsonRef->{"bags"},  $repoBag);
+	if(!(-d $bag)){
+		printf("3: Repo bag found: " . $repoBag->{"name"} . "\n");
+		my $bagURL = $repoBag->{"repo"};
+		`git clone $bagURL`;
+	}
+	else{
+		`cd $bag; git pull origin master`;
+	}
+	my $installer = $repoBag->{"installer"};
+	`cd $bag; ./$installer`;
+}
+
 sub install(@){
 	my $jsonString = "";
 	my $jsonRef = 0;
@@ -89,6 +107,7 @@ sub install(@){
 			my $repoJsonRef = decode_json($repoJsonString);
 			foreach $repoBag (@{$repoJsonRef}){
 				if($repoBag->{"name"} eq $bag){
+					install_bag($bag, $repoBag, $jsonRef);
 					$found = 1;
 					last;
 				}
@@ -100,17 +119,6 @@ sub install(@){
 		}
 		if($found){
 			$dirty = 1;
-			push($jsonRef->{"bags"},  $repoBag);
-
-			if(!(-d $bag)){
-				my $bagURL = $repoBag->{"repo"};
-				`git clone $bagURL`;
-			}
-			else{
-				`cd $bag; git pull origin master`;
-			}
-			my $installer = $repoBag->{"installer"};
-			`cd $bag; ./$installer`;
 		}
 		else{
 			printf("Bag $bag could not be found\n");

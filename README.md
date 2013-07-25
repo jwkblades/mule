@@ -11,7 +11,7 @@ Setting up a repo mirror is as easy as setting up a git server. Once you have yo
 Mule Commands
 =============
 
-install BAG *(TODO)*
+install BAG
 -----------
 Install the specified BAG (package) on your machine if it is found and supports 
 your OS.
@@ -20,7 +20,7 @@ remove BAG *(TODO)*
 ----------
 Remove the specified BAG from your machine if it is installed.
 
-update *(TODO)*
+update
 ------
 Update all of the known repo mirrors and download any BAG updates which are 
 available.
@@ -51,7 +51,7 @@ File Formats
 
 .mule
 -----
-A JSON object of name to REPO URL key-value pairings.
+A JSON object containing a repos member which is an object of name to REPO URL key-value pairings, and a bags member which is an array of bag objects (following the examples.bag model) that are installed on the machine.
 
 example.bag
 -----------
