@@ -1,6 +1,6 @@
 {
 	"name": "example",
-	"version": "1.0",
+	"version": 1.0,
 	"description": "A quick example BAG",
 	"keywords": [
 		"example",
@@ -12,6 +12,7 @@
 	},
 	"devDependencies": {
 	},
+	"repo": "git@example.com/example",
 	"installer": "example.installer.sh",
 	"uninstaller": "example.uninstaller.sh",
 	"license": "MIT"

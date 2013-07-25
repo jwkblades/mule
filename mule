@@ -43,7 +43,6 @@ my %commands = (
 sub _main(@){
 	my @argv = @_;
 	my $cmd = shift(@argv);
-	printf("Called _main\n");
 	if($commands{$cmd}){
 		&{$commands{$cmd}}(@argv);
 	}
@@ -55,13 +54,70 @@ _main(@args);
 
 sub install(@){
 	my @argv = @_;
-	printf("Called install\n");
 }
 
 sub remove(@){
 }
 
 sub update(@){
+	
+	my $cmd = shift(@_);
+	my $jsonString = "";
+	my $jsonRef = 0;
+	my $dirty = 0;
+
+	`touch .mule`;
+	open(REPO_LIST, "<.mule");
+	while(<REPO_LIST>){
+		$jsonString .= $_;
+	}
+	close(REPO_LIST);
+	if(!$jsonString){
+		printf("Empty .mule file, please use 'mule repo add' to add repository mirrors\n");
+		return;
+	}
+	else{
+		$jsonRef = decode_json($jsonString);
+	}
+
+	foreach my $repoName (keys(%{$jsonRef->{"repos"}})){
+		if(!(-d $repoName)){
+			`git clone $jsonRef->{"repos"}->{$repoName}`;
+		}
+		else{
+			`cd $repoName; git pull origin master`;
+		}
+	}
+
+	foreach my $bagRef (@{$jsonRef->{"bags"}}){
+		my $bagName = $bagRef->{"name"};
+		if(!(-d $bagName)){
+			next;
+		}
+		`cd $bagName; git pull origin master`;
+		my $bagJsonString = "";
+
+		open(BAG, "<$bagName/$bagName.bag");
+		while(<BAG>){
+			$bagJsonString .= $_;
+		}
+		close(BAG);
+		
+		my $bagJsonRef = decode_json($bagJsonString);
+		if($bagRef->{"version"} < $bagJsonRef->{"version"}){
+			my $installer = $bagJsonRef->{"installer"};
+			`cd $bagName; ./$installer`;
+			$bagRef = $bagJsonRef;
+			$dirty = 1;
+		}
+	}
+
+	if($dirty){
+		my $repoString = encode_json($jsonRef);
+		open(REPO_FILE, ">.mule");
+		printf(REPO_FILE "$repoString");
+		close(REPO_FILE);
+	}
 }
 
 sub repo(@){
@@ -69,29 +125,35 @@ sub repo(@){
 	my $cmd = shift(@_);
 	my $jsonString = "";
 	my $jsonRef = 0;
-	my %emptyRepoHash = ();
+	my %reposHash = ();
+	my @bagsArray = ();
+	my %emptyRepoHash = (
+		"repos" => \%reposHash,
+		"bags" => \@bagsArray
+	);
 	my %commands = (
 		"add" => sub(@){
 				foreach my $toAdd (@_){
 					my @matches = $toAdd =~ m/\/([^\/]+)$/;
 					my $repoName = $matches[0];
-					if(!$jsonRef->{$repoName}){
-						$jsonRef->{$repoName} = $toAdd;
+					$repoName =~ s/\.git$//;
+					if(!$jsonRef->{"repos"}->{$repoName}){
+						$jsonRef->{"repos"}->{$repoName} = $toAdd;
 						$dirty = 1;
 					}
 				}
 			},
 		"remove" => sub(@){
 				foreach my $toRemove (@_){
-					if($jsonRef->{$toRemove}){
-						delete $jsonRef->{$toRemove};
+					if($jsonRef->{"repos"}->{$toRemove}){
+						delete $jsonRef->{"repos"}->{$toRemove};
 						$dirty = 1;
 					}
 				}
 			},
 		"list" => sub(@){
-				foreach my $repo (keys(%{$jsonRef})){
-					printf($repo ." ("  . $jsonRef->{$repo} . ")\n");
+				foreach my $repo (keys(%{$jsonRef->{"repos"}})){
+					printf($repo ." ("  . $jsonRef->{"repos"}->{$repo} . ")\n");
 				}
 			},
 		"help" => sub(@){
