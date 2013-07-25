@@ -38,22 +38,44 @@ sub install(@){
 sub remove(@){
 }
 sub repo(@){
-	sub add($);
-	sub remove($);
-	sub list();
-	sub help();
-	my %commands = (
-		"add" => \&add,
-		"remove" => \&remove,
-		"list" => \&list,
-		"help" => \&help
-	);
 	my $dirty = 0;
 	my $cmd = shift(@_);
 	my $jsonString = "";
 	my $jsonRef = 0;
 	my @emptyRepoArray = ();
+	my %commands = (
+		"add" => sub(@){
+				foreach my $toAdd (@_){
+					if(!(indexOfStr($toAdd, @{$jsonRef})+1)){
+						push($jsonRef, $toAdd);
+						$dirty = 1;
+					}
+				}
+			},
+		"remove" => sub(@){
+				foreach my $toRemove (@_){
+					my $index = indexOfStr($toRemove, @{$jsonRef});
+					if($index + 1){
+						splice($jsonRef, $index, 1);
+						$dirty = 1;
+					}
+				}
+			},
+		"list" => sub(@){
+				foreach my $repo (@{$jsonRef}){
+					printf("$repo\n");
+				}
+			},
+		"help" => sub(@){
+			printf(
+"mule repo usage:
+  add URL - Add the specified package repository (URL) to the list of repositories
+	remove URL - Remove a package repository
+	list - List all package repositories currently available\n");  
+			}
+	);
 	
+	`touch .mule`;
 	open(REPO_LIST, "<.mule");
 	while(<REPO_LIST>){
 		$jsonString .= $_;
@@ -70,48 +92,21 @@ sub repo(@){
 		help();
 	}
 	elsif($commands{$cmd}){
-		&{$commands{$cmd}}(@argv);
+		&{$commands{$cmd}}(@_);
 	}
 	else{
 	}
 
 	if($dirty){
-		open(REPO_LIST, "<.mule");
-		my $jsonString = json_encode($jsonRef);
+		open(REPO_LIST, ">.mule");
+		my $jsonString = encode_json($jsonRef);
 		printf(REPO_LIST "$jsonString");
 		close(REPO_LIST);
 	}
 
-	sub help(){
-		printf(
-"mule repo usage:
-  add URL - Add the specified package repository (URL) to the list of repositories
-	remove URL - Remove a package repository
-	list - List all package repositories currently available\n");  
-	}
 
-	sub add($){
-		my $toAdd = shift(@_);
-		if(!(indexOfStr($toAdd, $jsonRef->))){
-			$jsonRef->[] = $toAdd;
-			$dirty = 1;
-		}
-	}
 
-	sub remove($){
-		my $toRemove = shift(@_);
-		my $index = indexOfStr($toRemove, $jsonRef->);
-		if($index + 1){
-			splice($jsonRef->, $index, 1);
-			$dirty = 1;
-		}
-	}
 
-	sub list(){
-		foreach my $repo ($jsonRef->){
-			printf("$repo\n");
-		}
-	}
 }
 sub update(@){
 }
@@ -119,7 +114,7 @@ sub update(@){
 sub indexOfStr($ @){
 	my $needle = shift(@_);
 	my @haystack = @_;
-	for(my $i = 0; $i < $#haystack; $i++){
+	for(my $i = 0; $i < $#haystack + 1; $i++){
 		if($needle eq $haystack[$i]){
 			return $i;
 		}
