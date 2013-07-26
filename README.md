@@ -50,25 +50,33 @@ Examples
 ========
 
 Just starting off with mule you will want to add a repo mirror to mule so it has something to look through when we tell it to install a bag. To accomplish this we first need to add the repo mirror:
+  
   ```mule repo add jamesb@example.com:/myRepoMirror.git```
+
 Then we need to tell mule to update itself and actually pull down the mirror's baggage:
+
   ```mule update```
 
 Once we have a baggage file on our machines we can install any bag that it has listed within it by calling install with the bag name:
-  ```mule install exampleBagName```
 
+  ```mule install exampleBagName```
+ 
 Which will pull down the git repository associated with the bag, along with the dependencies it has (both dev and normal) and call the installer scripts within each. Install also makes sure to install the dependencies before the desired bag to limit confusion if one package actually does check for others.
 
 Now, say we are getting tired of a bag being installed, we can remove it using remove:
+
   ```mule remove exampleBagName```
 
 At the moment, remove doesn't remove the dependencies which were originally installed with a package, however it will remove any bags which are dependent on the one we are actively attempting to remove. When removing a bag we first call the uninstall script, and then we remove the git repository associated with the bag.
 
 If you want to see which repos you have installed in mule you can issue with following command:
+
   ```mule repo list```
 
 And finally, if you want to remove a repo from mule you can run:
+
   ```mule repo remove myRepoMirror```
+
 *NOTE* - the ".git" is not missing from the end of the remove statement, mule considers the repository name to be anything after the last /, not including .git (which it removed) in the URL.
 
 File Formats
