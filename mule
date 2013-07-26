@@ -29,17 +29,18 @@ use warnings;
 use strict;
 
 my @args = @ARGV;
-sub findIn($ @);
-sub install(@);
-sub remove(@);
-sub repo(@);
-sub update(@);
+sub install($ @);
+sub remove($ @);
+sub repo($ @);
+sub update($ @);
+
 my %commands = (
 	"install" => \&install,
 	"remove" => \&remove,
 	"repo" => \&repo,
 	"update" => \&update
 );
+
 sub _main(@){
 	my @argv = @_;
 	my $cmd = shift(@argv);
@@ -48,121 +49,250 @@ sub _main(@){
 		return;
 	}
 	if($commands{$cmd}){
-		&{$commands{$cmd}}(@argv);
+
+		my $jsonString = "";
+		my $jsonRef;
+		my %reposHash = ();
+		my @bagsArray = ();
+		my @explicitlyInstalledArray = ();
+		my %emptyRepoHash = (
+			"repos" => \%reposHash,
+			"bags" => \@bagsArray,
+			"explicit" => \@explicitlyInstalledArray
+		);
+
+		system("touch .mule");
+		open(REPO_LIST, "<.mule");
+		while(<REPO_LIST>){
+			$jsonString .= $_;
+		}
+		close(REPO_LIST);
+		if(!$jsonString){
+			$jsonRef = \%emptyRepoHash;
+		}
+		else{
+			$jsonRef = decode_json($jsonString);
+		}
+	
+		&{$commands{$cmd}}($jsonRef, @argv);
 	}
 	else{
 	}
 }
 _main(@args);
 
+sub write_out_mule($){
+	my $jsonRef = shift(@_);
+	open(REPO_LIST, ">.mule");
+	my $jsonString = encode_json($jsonRef);
+	printf(REPO_LIST "$jsonString");
+	close(REPO_LIST);
+}
+
+sub present($ $){
+	my $depName = shift(@_);
+	my $bagsListRef = shift(@_);
+	my %emptyHash = ();
+
+	foreach my $bag (@{$bagsListRef}){
+		if($bag->{"name"} eq $depName){
+			return \%{$bag};
+		}
+	}
+	return \%emptyHash;
+}
+sub explicit($ $){
+	my $depName = shift(@_);
+	my $bagsListRef = shift(@_);
+
+	foreach my $bag (@{$bagsListRef}){
+		if($bag eq $depName){
+			return 1;
+		}
+	}
+	return 0;
+}
+
+sub install_deps($ $ $){
+	my $depName = shift(@_);
+	my $depVersion = shift(@_);
+	my $jsonRef = shift(@_);
+
+	my $depRef = present($depName, \@{$jsonRef->{"bags"}});
+	if(!%{$depRef}){
+		download_and_install($depName, $jsonRef, 0);
+	}
+}
 
 sub install_bag($ $ $){
 	my $bag = shift(@_);
 	my $repoBag = shift(@_);
 	my $jsonRef = shift(@_);
 
-	push($jsonRef->{"bags"},  $repoBag);
+	if(!%{present($bag, \@{$jsonRef->{"bags"}})}){
+		push($jsonRef->{"bags"},  $repoBag);
+	}
+
 	if(!(-d $bag)){
-		printf("3: Repo bag found: " . $repoBag->{"name"} . "\n");
 		my $bagURL = $repoBag->{"repo"};
-		`git clone $bagURL`;
+		system("git clone $bagURL");
 	}
 	else{
-		`cd $bag; git pull origin master`;
+		system("cd $bag; git pull origin master");
 	}
+	foreach my $dep (keys(%{$repoBag->{"dependencies"}})){
+		my $depVersion = $repoBag->{"dependencies"}->{$dep};
+		install_deps($dep, $depVersion, $jsonRef);
+	}
+	foreach my $dep (keys(%{$repoBag->{"devDependencies"}})){
+		my $depVersion = $repoBag->{"devDependencies"}->{$dep};
+		install_deps($dep, $depVersion, $jsonRef);
+	}
+
 	my $installer = $repoBag->{"installer"};
-	`cd $bag; ./$installer`;
+	system("cd $bag; ./$installer");
 }
 
-sub install(@){
+sub download_and_install($ $ $){
+	my $bag = shift(@_);
+	my $jsonRef = shift(@_);
+	my $explicit = shift(@_);
+
+	foreach my $repoName (keys(%{$jsonRef->{"repos"}})){
+		my $repoJsonString = "";
+
+		if(!(-d $repoName)){
+			printf("Error - Repo $repoName doesn't exist, have you run a 'mule update'?\n");
+			next;
+		}
+
+		open(REPO_BAGGAGE, "<$repoName/baggage");
+		while(<REPO_BAGGAGE>){
+			$repoJsonString .= $_;
+		}
+		close(REPO_BAGGAGE);
+
+		my $repoJsonRef = decode_json($repoJsonString);
+		foreach my $repoBag (@{$repoJsonRef}){
+			if($repoBag->{"name"} eq $bag){
+				if($explicit){
+					push($jsonRef->{"explicit"}, $bag);
+				}
+				install_bag($bag, $repoBag, $jsonRef);
+				return 1;
+			}
+		}
+	}
+
+	printf("Bag $bag could not be found\n");
+	return 0;
+}
+
+sub install($ @){
+	my $jsonRef = shift(@_);
 	my $jsonString = "";
-	my $jsonRef = 0;
 	my $dirty = 0;
 
-	`touch .mule`;
-	open(REPO_LIST, "<.mule");
-	while(<REPO_LIST>){
-		$jsonString .= $_;
-	}
-	close(REPO_LIST);
-	if(!$jsonString){
-		printf("Empty .mule file, please use 'mule repo add' to add repository mirrors\n");
-		return;
-	}
-	else{
-		$jsonRef = decode_json($jsonString);
+	foreach my $bag (@_){
+		if(%{present($bag, \@{$jsonRef->{"bags"}})} && explicit($bag, \@{$jsonRef->{"explicit"}})){
+			next;
+		}
+		$dirty = $dirty || download_and_install($bag, $jsonRef, 1);
 	}
 
-	foreach my $bag (@_){
-		my $found = 0;
-		my $repoName;
-		my $repoBag;
-		foreach $repoName (keys(%{$jsonRef->{"repos"}})){
-			my $repoJsonString = "";
-			open(REPO_BAGGAGE, "<$repoName/baggage");
-			while(<REPO_BAGGAGE>){
-				$repoJsonString .= $_;
+	if($dirty){
+		write_out_mule($jsonRef);
+	}
+}
+
+sub needed($ $){
+	my $bagName = shift(@_);
+	my $bagsRef = shift(@_);
+	my @dependent = ();
+
+	foreach my $bag (@{$bagsRef}){
+		my $dep;
+		foreach $dep (keys(%{$bag->{"dependencies"}})){
+			if($dep eq $bagName){
+				push(\@dependent, $bag->{"name"});
 			}
-			close(REPO_BAGGAGE);
-			my $repoJsonRef = decode_json($repoJsonString);
-			foreach $repoBag (@{$repoJsonRef}){
-				if($repoBag->{"name"} eq $bag){
-					install_bag($bag, $repoBag, $jsonRef);
-					$found = 1;
+		}
+		foreach $dep (keys(%{$bag->{"devDependencies"}})){
+			if($dep eq $bagName){
+				push(\@dependent, $bag->{"name"});
+			}
+		}
+	}
+	return \@dependent;
+}
+
+sub remove($ @){
+	my $jsonRef = shift(@_);
+	my $dirty = 0;
+	foreach my $bagName (@_){
+		printf("Looking to remove $bagName\n");
+		my $neededBy = needed($bagName, \@{$jsonRef->{"bags"}});
+		printf("$bagName is needed by @{$neededBy}\n");
+		if(scalar(@{$neededBy})){
+			printf("$bagName is needed by the following bags:\n");
+			foreach my $dependingBag (@{$neededBy}){
+				printf("    $dependingBag\n");
+			}
+			printf("Is it alright to remove them as well [y/N]? ");
+			$| = 1;
+			my $answer = "n";
+			$answer = <STDIN>;
+			$answer =~ s/^\s*(n|y|Y|N)\s*$/$1/;
+			if($answer eq "y" || $answer eq "Y"){
+				remove($jsonRef, @{$neededBy});
+			}
+			else{
+				printf("$bagName will not be removed.\n");
+				next;
+			}
+		}
+
+		my $bag = present($bagName, \@{$jsonRef->{"bags"}});
+		if(!%{$bag}){
+			next;
+		}
+		my $uninstaller = $bag->{"uninstaller"};
+		if(-d $bagName){
+			system("cd $bagName; ./$uninstaller");
+			system("rm -rf $bagName");
+			for(my $i = 0; $i < scalar(@{$jsonRef->{"bags"}}) + 1; $i++){
+				if($jsonRef->{"bags"}[$i]->{"name"} eq $bagName){
+					splice(\@{$jsonRef->{"bags"}}, $i, 1);
 					last;
 				}
 			}
-			if($found){
-				last;
+			for(my $i = 0; $i < scalar(@{$jsonRef->{"explicit"}}) + 1; $i++){
+				if($jsonRef->{"explicit"}[$i] eq $bagName){
+					splice(\@{$jsonRef->{"explicit"}}, $i, 1);
+					last;
+				}
 			}
-
-		}
-		if($found){
 			$dirty = 1;
-		}
-		else{
-			printf("Bag $bag could not be found\n");
+			printf("Removed $bagName\n");
 		}
 	}
 
 	if($dirty){
-		my $repoString = encode_json($jsonRef);
-		open(REPO_FILE, ">.mule");
-		printf(REPO_FILE "$repoString");
-		close(REPO_FILE);
+		write_out_mule($jsonRef);
 	}
 }
 
-sub remove(@){
-}
-
-sub update(@){
-	
-	my $cmd = shift(@_);
+sub update($ @){
+	my $jsonRef = shift(@_);
 	my $jsonString = "";
-	my $jsonRef = 0;
 	my $dirty = 0;
-
-	`touch .mule`;
-	open(REPO_LIST, "<.mule");
-	while(<REPO_LIST>){
-		$jsonString .= $_;
-	}
-	close(REPO_LIST);
-	if(!$jsonString){
-		printf("Empty .mule file, please use 'mule repo add' to add repository mirrors\n");
-		return;
-	}
-	else{
-		$jsonRef = decode_json($jsonString);
-	}
 
 	foreach my $repoName (keys(%{$jsonRef->{"repos"}})){
 		if(!(-d $repoName)){
-			`git clone $jsonRef->{"repos"}->{$repoName}`;
+			system("git clone " . $jsonRef->{"repos"}->{$repoName});
 		}
 		else{
-			`cd $repoName; git pull origin master`;
+			system("cd $repoName; git pull origin master");
 		}
 	}
 
@@ -171,7 +301,7 @@ sub update(@){
 		if(!(-d $bagName)){
 			next;
 		}
-		`cd $bagName; git pull origin master`;
+		system("cd $bagName; git pull origin master");
 		my $bagJsonString = "";
 
 		open(BAG, "<$bagName/$bagName.bag");
@@ -181,33 +311,27 @@ sub update(@){
 		close(BAG);
 		
 		my $bagJsonRef = decode_json($bagJsonString);
-		if($bagRef->{"version"} < $bagJsonRef->{"version"}){
+		my $oldVersion = $bagRef->{"version"};
+		my $newVersion = $bagJsonRef->{"version"};
+		if($oldVersion < $newVersion){
+			my $uninstaller = $bagRef->{"uninstaller"};
 			my $installer = $bagJsonRef->{"installer"};
-			`cd $bagName; ./$installer`;
+			system("cd $bagName; git checkout $oldVersion; ./$uninstaller; git checkout $newVersion; ./$installer");
 			$bagRef = $bagJsonRef;
 			$dirty = 1;
 		}
 	}
 
 	if($dirty){
-		my $repoString = encode_json($jsonRef);
-		open(REPO_FILE, ">.mule");
-		printf(REPO_FILE "$repoString");
-		close(REPO_FILE);
+		write_out_mule($jsonRef);
 	}
 }
 
-sub repo(@){
+sub repo($ @){
+	my $jsonRef = shift(@_);
 	my $dirty = 0;
 	my $cmd = shift(@_);
 	my $jsonString = "";
-	my $jsonRef = 0;
-	my %reposHash = ();
-	my @bagsArray = ();
-	my %emptyRepoHash = (
-		"repos" => \%reposHash,
-		"bags" => \@bagsArray
-	);
 	my %commands = (
 		"add" => sub(@){
 				foreach my $toAdd (@_){
@@ -224,6 +348,9 @@ sub repo(@){
 				foreach my $toRemove (@_){
 					if($jsonRef->{"repos"}->{$toRemove}){
 						delete $jsonRef->{"repos"}->{$toRemove};
+						if(-d $toRemove){
+							system("rm -rf $toRemove");
+						}
 						$dirty = 1;
 					}
 				}
@@ -242,21 +369,8 @@ sub repo(@){
 			}
 	);
 	
-	`touch .mule`;
-	open(REPO_LIST, "<.mule");
-	while(<REPO_LIST>){
-		$jsonString .= $_;
-	}
-	close(REPO_LIST);
-	if(!$jsonString){
-		$jsonRef = \%emptyRepoHash;
-	}
-	else{
-		$jsonRef = decode_json($jsonString);
-	}
-
 	if(!$cmd){
-		help();
+		&{$commands{"help"}}();
 	}
 	elsif($commands{$cmd}){
 		&{$commands{$cmd}}(@_);
@@ -265,20 +379,6 @@ sub repo(@){
 	}
 
 	if($dirty){
-		open(REPO_LIST, ">.mule");
-		my $jsonString = encode_json($jsonRef);
-		printf(REPO_LIST "$jsonString");
-		close(REPO_LIST);
+		write_out_mule($jsonRef);
 	}
-}
-
-sub indexOfStr($ @){
-	my $needle = shift(@_);
-	my @haystack = @_;
-	for(my $i = 0; $i < $#haystack + 1; $i++){
-		if($needle eq $haystack[$i]){
-			return $i;
-		}
-	}
-	return -1;
 }
