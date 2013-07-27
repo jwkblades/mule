@@ -1,5 +1,10 @@
 Remove implicitly installed bags when their dependent is being removed.
+Write up the requirements for .bag files, the .mule file, and the baggage files.
+Put together an example repo mirror and bag.
 Add a search function that allows a user to enter keywords to be searched for in the name, description, and keywords associated with a bag (located in the repo baggage file).
 Add a help function.
 Clean up the code.
 Allow for multiple versions of a bag to be installed, and required by other bags.
+Add tab-completion.
+Specify where the bag is to come from in a REPONAME/BAGNAME fashion to allow multiple repo mirrors containing bags with the same name.
+Add OS array to the .bag and baggage files so we can tell if the running OS should be able to install the bag before downloading it.
