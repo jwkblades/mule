@@ -135,7 +135,7 @@ sub install_bag($ $ $){
 
 	if(!(-d $bag)){
 		my $bagURL = $repoBag->{"repo"};
-		system("git clone $bagURL");
+		system("git clone $bagURL $bag");
 	}
 	else{
 		system("cd $bag; git pull origin master");
@@ -289,7 +289,7 @@ sub update($ @){
 
 	foreach my $repoName (keys(%{$jsonRef->{"repos"}})){
 		if(!(-d $repoName)){
-			system("git clone " . $jsonRef->{"repos"}->{$repoName});
+			system("git clone " . $jsonRef->{"repos"}->{$repoName} . " $repoName");
 		}
 		else{
 			system("cd $repoName; git pull origin master");

@@ -1,6 +1,6 @@
 [ ] Remove implicitly installed bags when their dependent is being removed.
 [ ] Write up the requirements for .bag files, the .mule file, and the baggage files.
-[ ] Put together an example repo mirror and bag.
+[X] Put together an example repo mirror and bag.
 [ ] Add a search function that allows a user to enter keywords to be searched for in the name, description, and keywords associated with a bag (located in the repo baggage file).
 [ ] Add a help function.
 [ ] Clean up the code.
