@@ -33,12 +33,14 @@ sub install($ @);
 sub remove($ @);
 sub repo($ @);
 sub update($ @);
+sub help($ @);
 
 my %commands = (
 	"install" => \&install,
 	"remove" => \&remove,
 	"repo" => \&repo,
-	"update" => \&update
+	"update" => \&update,
+	"help" => \&help
 );
 
 sub _main(@){
@@ -80,6 +82,27 @@ sub _main(@){
 	}
 }
 _main(@args);
+
+sub help($ @){
+	printf("mule usage: 
+	mule install bag [bag2 [...]]
+		Install each of the specified bags as well as their dependencies.
+	mule remove bag [bag2 [...]]
+		Remove each of the specified bags as well as all bags which are dependent on them (Coming soon - also remove all bags on which they are dependent, and are otherwise orphaned).
+	mule update
+		Download and install all newer version of bags which are available. Update all repo mirrors' baggage files.
+	mule repo add mirror [mirror2 [...]]
+		Add each of the specified repo mirrors to mule (NOTE - They won't be downloaded until a mule update is called).
+	mule repo remove mirrorName [mirrorName2 [...]]
+		Remove each of the specified repo mirrors from mule. This doesn't uninstall any packages which were installed from the mirrors.
+	mule repo list
+		List all repo mirrors mule knows about and their names.
+	mule repo help
+		Display a help message about the mule repo command.
+	mule help
+		Display this help message.
+	");
+}
 
 sub write_out_mule($){
 	my $jsonRef = shift(@_);
