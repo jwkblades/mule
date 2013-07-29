@@ -101,7 +101,7 @@ sub help($ @){
 		Display a help message about the mule repo command.
 	mule help
 		Display this help message.
-	");
+");
 }
 
 sub write_out_mule($){
