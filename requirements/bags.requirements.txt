@@ -1,0 +1,20 @@
+NOTE - This is subject to change.
+
+.bag files are a JSON object containing the following members:
+"name" is the name of the bag. This is used for searching, installing and uninstalling the bag.
+"version" is a numeric entity containing the version number of the bag.
+"keywords" is an array of individual keywords which it makes sense for the bag to be filed under when someone is searching.
+"author" is the name of the author of the bag, this may also contain the email address of the author.
+"license" is the license under which the bag may be used.
+"description" a short description of the bag.
+"installer" is a file path to the bag's installer script. NOTE - This will likely change in the near future to be an object with the following key => value tuples (where the value is an installer script and the key is one of the following:
+  Windows - For the Windows OS
+	Mac - For the Mac OS
+	GenericLinux - For generic linux distros
+	<Name of Linux Distro> - For specific linux distros
+	All - For all OSs
+	Other - For any OS which isn't otherwise specified in the installer object.
+"uninstaller" is a file path containing the bag's uninstaller script. NOTE - This will likely change to the same format as the installer member.
+"dependencies" is an object containing a key => value pairing of dependencies which must be installed with or before the bag itself is installed. The key is the name of the bag on which we depend, and the value is the version of that bag which should be installed.
+"devDependencies" is the same format as dependencies, but acts as a list of bags which need to be installed for depevelopment purposes.
+"repo" is the repository from which the bag can be cloned/ pulled to install and update the program on users' computers.

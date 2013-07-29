@@ -1,0 +1,1 @@
+The baggage file is a file containing the .bag contents of every bag which a repo mirror has information on. This is an array of objects. The objects follow the requirements set forth by the bags.requirements.txt file.

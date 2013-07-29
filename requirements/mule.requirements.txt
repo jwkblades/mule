@@ -1,0 +1,7 @@
+The .mule file is a generated which under normal circumstances should not be edited by hand. However, there are times when this may become necessary (such as if a package is corrupted, or in certain crash instances).
+
+The .mule file shall have the following structure:
+Be a JSON object containing 3 members. The members will consist of "repo", "bags" and "explicit".
+"repo" is an array of git repositories to be cloned and actively maintained by mule to gather bag information from.
+"bags" is an array of objects containing the .bag contents of all bags installed by mule. The contents of the .bag files will be covered in the bags.requirements.txt file.
+"explicit" is an array of bag names which were explicitly installed by the user. This is how we differentiate between bags installed as dependencies to other bags, and bags which the user manually told us to install and will want.
