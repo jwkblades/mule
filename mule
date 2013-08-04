@@ -333,7 +333,7 @@ sub update($ @){
 	foreach my $bagRef (@{$jsonRef->{"bags"}}){
 		my $bagName = $bagRef->{"name"};
 		if(!(-d $bagName)){
-			next;
+			system("git clone $bagRef->{'repo'} $bagName");
 		}
 		system("cd $bagName; git pull origin master");
 		my $bagJsonString = "";
