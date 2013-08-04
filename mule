@@ -111,7 +111,7 @@ sub help($ @){
 sub clean($ @){
 	my $jsonRef = shift(@_);
 	foreach my $bag (@{$jsonRef->{"bags"}}){
-		`rm -rf $bag->{"name"}`;
+		system("rm -rf $bag->{'name'}");
 	}
 }
 

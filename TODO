@@ -8,4 +8,4 @@
 [ ] Add tab-completion.
 [ ] Specify where the bag is to come from in a REPONAME/BAGNAME fashion to allow multiple repo mirrors containing bags with the same name.
 [ ] Add OS array to the .bag and baggage files so we can tell if the running OS should be able to install the bag before downloading it.
-[ ] Add a clean function to remove downloaded bag repositories.
+[X] Add a clean function to remove downloaded bag repositories.

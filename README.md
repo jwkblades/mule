@@ -11,6 +11,10 @@ Setting up a repo mirror is as easy as setting up a git server. Once you have yo
 Mule Commands
 =============
 
+clean
+-----
+Clean out all downloaded bag repos to save space. NOTE - When removing an installed bag, or updating the bag repo is downloaded once more.
+
 install BAGNAME
 ---------------
 Install the specified BAG (package) on your machine if it is found and supports 
