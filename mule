@@ -291,24 +291,27 @@ sub remove($ @){
 			next;
 		}
 		my $uninstaller = $bag->{"uninstaller"};
-		if(-d $bagName){
-			system("cd $bagName; ./$uninstaller");
-			system("rm -rf $bagName");
-			for(my $i = 0; $i < scalar(@{$jsonRef->{"bags"}}) + 1; $i++){
-				if($jsonRef->{"bags"}[$i]->{"name"} eq $bagName){
-					splice(\@{$jsonRef->{"bags"}}, $i, 1);
-					last;
-				}
-			}
-			for(my $i = 0; $i < scalar(@{$jsonRef->{"explicit"}}) + 1; $i++){
-				if($jsonRef->{"explicit"}[$i] eq $bagName){
-					splice(\@{$jsonRef->{"explicit"}}, $i, 1);
-					last;
-				}
-			}
-			$dirty = 1;
-			printf("Removed $bagName\n");
+
+		if(!(-d $bagName)){
+			system("git clone $bag->{'repo'} $bagName");
 		}
+
+		system("cd $bagName; ./$uninstaller");
+		system("rm -rf $bagName");
+		for(my $i = 0; $i < scalar(@{$jsonRef->{"bags"}}) + 1; $i++){
+			if($jsonRef->{"bags"}[$i]->{"name"} eq $bagName){
+				splice(\@{$jsonRef->{"bags"}}, $i, 1);
+				last;
+			}
+		}
+		for(my $i = 0; $i < scalar(@{$jsonRef->{"explicit"}}) + 1; $i++){
+			if($jsonRef->{"explicit"}[$i] eq $bagName){
+				splice(\@{$jsonRef->{"explicit"}}, $i, 1);
+				last;
+			}
+		}
+		$dirty = 1;
+		printf("Removed $bagName\n");
 	}
 
 	if($dirty){
