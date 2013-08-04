@@ -29,6 +29,7 @@ use warnings;
 use strict;
 
 my @args = @ARGV;
+sub clean($ @);
 sub install($ @);
 sub remove($ @);
 sub repo($ @);
@@ -36,6 +37,7 @@ sub update($ @);
 sub help($ @);
 
 my %commands = (
+	"clean" => \&clean,
 	"install" => \&install,
 	"remove" => \&remove,
 	"repo" => \&repo,
@@ -85,12 +87,12 @@ _main(@args);
 
 sub help($ @){
 	printf("mule usage: 
+	mule clean
+		Cleans out the downloaded bag repos that we have available. NOTE - This will save space in the short term, but when you go to update the bag the repo will be downloaded once more.
 	mule install bag [bag2 [...]]
 		Install each of the specified bags as well as their dependencies.
 	mule remove bag [bag2 [...]]
 		Remove each of the specified bags as well as all bags which are dependent on them (Coming soon - also remove all bags on which they are dependent, and are otherwise orphaned).
-	mule update
-		Download and install all newer version of bags which are available. Update all repo mirrors' baggage files.
 	mule repo add mirror [mirror2 [...]]
 		Add each of the specified repo mirrors to mule (NOTE - They won't be downloaded until a mule update is called).
 	mule repo remove mirrorName [mirrorName2 [...]]
@@ -101,7 +103,16 @@ sub help($ @){
 		Display a help message about the mule repo command.
 	mule help
 		Display this help message.
+	mule update
+		Download and install all newer version of bags which are available. Update all repo mirrors' baggage files.
 ");
+}
+
+sub clean($ @){
+	my $jsonRef = shift(@_);
+	foreach my $bag (@{$jsonRef->{"bags"}}){
+		`rm -rf $bag->{"name"}`;
+	}
 }
 
 sub write_out_mule($){
