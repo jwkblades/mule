@@ -35,12 +35,14 @@ sub remove($ @);
 sub repo($ @);
 sub update($ @);
 sub help($ @);
+sub search($ @);
 
 my %commands = (
 	"clean" => \&clean,
 	"install" => \&install,
 	"remove" => \&remove,
 	"repo" => \&repo,
+	"search" => \&search,
 	"update" => \&update,
 	"help" => \&help
 );
@@ -236,6 +238,40 @@ sub install($ @){
 
 	if($dirty){
 		write_out_mule($jsonRef);
+	}
+}
+
+sub search($ @){
+	my $jsonRef = shift(@_);
+	my @keywords = @_;
+	
+	foreach my $repoName (keys(%{$jsonRef->{"repos"}})){
+		my $repoJsonString = "";
+
+		if(!(-d $repoName)){
+			printf("Error - Repo $repoName doesn't exist, have you run a 'mule update'?\n");
+			next;
+		}
+
+		open(REPO_BAGGAGE, "<$repoName/baggage");
+		while(<REPO_BAGGAGE>){
+			$repoJsonString .= $_;
+		}
+		close(REPO_BAGGAGE);
+
+		my $repoJsonRef = decode_json($repoJsonString);
+		foreach my $repoBag (@{$repoJsonRef}){
+			foreach my $keyword (@keywords){
+				if($repoBag->{"name"} eq $bag || $repoBag->{"description"} =~ m/$keyword/gi){
+					printf("%20s: %s\n", $repoBag->{"name"}, $repoBag->{"description"});
+				}
+				foreach my $bagKeyword (@{$repoBag->{"keywords"}}){
+					if($bagKeyword =~ m/^$keyword$/i){
+						printf("%20s: %s\n", $repoBag->{"name"}, $repoBag->{"description"});
+					}
+				}
+			}
+		}
 	}
 }
 
