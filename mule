@@ -244,7 +244,8 @@ sub install($ @){
 sub search($ @){
 	my $jsonRef = shift(@_);
 	my @keywords = @_;
-	
+	my $found;
+
 	foreach my $repoName (keys(%{$jsonRef->{"repos"}})){
 		my $repoJsonString = "";
 
@@ -261,14 +262,23 @@ sub search($ @){
 
 		my $repoJsonRef = decode_json($repoJsonString);
 		foreach my $repoBag (@{$repoJsonRef}){
+			$found = 0;
 			foreach my $keyword (@keywords){
-				if($repoBag->{"name"} eq $bag || $repoBag->{"description"} =~ m/$keyword/gi){
+				if($repoBag->{"name"} eq $keyword || $repoBag->{"description"} =~ m/$keyword/gi){
 					printf("%20s: %s\n", $repoBag->{"name"}, $repoBag->{"description"});
+					$found = 1;
 				}
-				foreach my $bagKeyword (@{$repoBag->{"keywords"}}){
-					if($bagKeyword =~ m/^$keyword$/i){
-						printf("%20s: %s\n", $repoBag->{"name"}, $repoBag->{"description"});
+				if(!$found){
+					foreach my $bagKeyword (@{$repoBag->{"keywords"}}){
+						if($bagKeyword =~ m/^$keyword$/i){
+							printf("%20s: %s\n", $repoBag->{"name"}, $repoBag->{"description"});
+							$found = 1;
+							last;
+						}
 					}
+				}
+				if($found){
+					last;
 				}
 			}
 		}
